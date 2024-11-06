@@ -3,16 +3,16 @@ NETWORK_PARAMS:
   Q: 2
   hidden_features: 20
   out_features: 1
-  activation: "sin"  
+  activation: "sinh"  
 
 TRAINING_PARAMS:
-  epochs: 100
+  epochs: 1000
   batch_size: 128
   device: "cpu"
 
 EXPERIMENT_PARAMS:
-  N : 50
-  n_run : 1
+  N : 200
+  n_run : 5
   lmax : 20
   lr : 0.001
   target: "cartoon_shape"
