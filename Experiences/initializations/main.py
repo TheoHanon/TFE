@@ -1,5 +1,6 @@
 import yaml
 import argparse
+import os
 
 import numpy as np
 import torch
@@ -23,6 +24,11 @@ def main(parser):
     with open("configs/" + parser.exp + ".yaml", "r") as ymlfile:
         config = yaml.safe_load(ymlfile)
 
+    if not os.path.exists(config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp):
+        os.makedirs(config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp)
+        
+    save_path = config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp + "/"
+
     if config["EXPERIMENT_PARAMS"]["target"] == "cartoon_shape":
 
         def f(theta, phi):
@@ -32,7 +38,7 @@ def main(parser):
             return out
         
     else :
-
+        # TODO: Add other targets
         # def create_target(Y):
         #     coeff = np.random.randn(len(Y))
         #     def target(theta, phi):
@@ -62,7 +68,7 @@ def main(parser):
         lr=config["EXPERIMENT_PARAMS"]["lr"],
     )
 
-    torch.save({'train_loss_dict': train_loss_dict, 'val_loss_dict': val_loss_dict}, config["EXPERIMENT_PARAMS"]["results_path"] + "losses.pth")
+    torch.save({'train_loss_dict': train_loss_dict, 'val_loss_dict': val_loss_dict}, save_path + "losses.pth")
     
 
 # Run both experiments
