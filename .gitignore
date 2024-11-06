@@ -2,7 +2,10 @@
 Experiences/**/results/
 Experiences/**/plots/
 
+
 # Byte-compiled / optimized / DLL files
+Experiences/**/__pycache__/
+SphericalSIREN/__pycache__/
 __pycache__/
 *.py[cod]
 *$py.class
