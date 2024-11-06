@@ -1,6 +1,0 @@
-setup.py
-spherical_siren.egg-info/PKG-INFO
-spherical_siren.egg-info/SOURCES.txt
-spherical_siren.egg-info/dependency_links.txt
-spherical_siren.egg-info/requires.txt
-spherical_siren.egg-info/top_level.txt

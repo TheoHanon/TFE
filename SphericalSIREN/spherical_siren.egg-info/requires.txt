@@ -1,6 +1,0 @@
-torch
-numpy
-
-[dev]
-pytest
-flake8
