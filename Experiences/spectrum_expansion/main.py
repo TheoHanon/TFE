@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch_harmonics as th
 from spectrum_expension_utils import *
-from inr import SphericalSiren, train
+from inr import SphericalSiren, train, get_activation
 from spherical_harmonics_ylm import get_SH
 
 parser = argparse.ArgumentParser()
@@ -48,14 +48,9 @@ def main(parser):
     y_data = f(theta.flatten(), phi.flatten())
 
     network_params = config["NETWORK_PARAMS"]
+    network_params["activation"] = get_activation(network_params["activation"])
 
-    if network_params["activation"] == "relu":
-        network_params["activation"] = nn.ReLU()
-    elif network_params["activation"] == "sin":
-        network_params["activation"] = torch.sin
-    elif network_params["activation"] == "sinh":
-        network_params["activation"] = lambda x: torch.sin(x * (1 + torch.abs(x)))
-
+  
     spherical_siren = SphericalSiren(device = config["TRAINING_PARAMS"]["device"] ,**network_params)
 
     training_params = config["TRAINING_PARAMS"]

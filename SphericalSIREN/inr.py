@@ -5,6 +5,18 @@ import torch.nn.init as init
 from spherical_harmonics_ylm import get_SH
 from typing import Union, Tuple
 
+
+activation_functions = {  
+    "relu" : nn.ReLU(),
+    "tanh" : nn.Tanh(),
+    "sigmoid" : nn.Sigmoid(),  
+    "sin" : torch.sin,
+    "sinh" : lambda x: torch.sin(x * (1 + torch.abs(x)))
+}
+
+def get_activation(activation : str) -> callable:
+    return activation_functions[activation]
+
 class SphericalHarmonicsEmbedding(nn.Module):
     """Generates the spherical harmonics positional encoding of the input coordinates.
 
