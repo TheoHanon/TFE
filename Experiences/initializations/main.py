@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from initialization_utils import *
+from inr import get_activation
 from spherical_harmonics_ylm import get_SH
 
 parser = argparse.ArgumentParser()
@@ -44,13 +45,7 @@ def main(parser):
     training_params["loss_fn"] = loss_fn
 
     network_params = config["NETWORK_PARAMS"]
-
-    if network_params["activation"] == "relu":
-        network_params["activation"] = nn.ReLU()
-    elif network_params["activation"] == "sin":
-        network_params["activation"] = torch.sin
-    elif network_params["activation"] == "sinh":
-        network_params["activation"] = lambda x: torch.sin(x * (1 + torch.abs(x)))
+    network_params["activation"] = get_activation(network_params["activation"])
 
     N = config["EXPERIMENT_PARAMS"]["N"]
 
