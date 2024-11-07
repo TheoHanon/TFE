@@ -148,6 +148,22 @@ class SphericalSiren(nn.Module):
                     if layer.bias is not None:
                         init.zeros_(layer.bias)
 
+        elif self.init == "laurent_kaiming":
+
+            self._laurent_init(self.net[0].layer.weight)
+            init.zeros_(self.net[0].layer.bias)
+
+            for layer in self.net[1:]:
+                if isinstance(layer, MLPLayer):
+                    init.kaiming_uniform_(layer.layer.weight)
+                    if layer.layer.bias is not None:
+                        init.zeros_(layer.layer.bias)
+                elif isinstance(layer, nn.Linear):
+                    init.kaiming_uniform_(layer.weight)
+                    if layer.bias is not None:
+                        init.zeros_(layer.bias)
+        
+
         elif self.init == "laurent_xavier" :
             
             self._laurent_init(self.net[0].layer.weight)
