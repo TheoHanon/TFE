@@ -25,6 +25,12 @@ def main(parser):
     with open("configs/" + parser.exp + ".yaml", "r") as ymlfile:
         config = yaml.safe_load(ymlfile)
 
+    if not os.path.exists(config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp):
+        os.makedirs(config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp)
+
+    save_path = config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp + "/"
+    model_path = save_path + config["EXPERIMENT_PARAMS"]["model_path"] 
+    
     if config["EXPERIMENT_PARAMS"]["target"] == "cartoon_shape":
 
         def f(theta, phi):
@@ -68,15 +74,15 @@ def main(parser):
     )
 
     # Save results
-    torch.save({'losses_train': losses_train, 'losses_val': losses_val}, config["EXPERIMENT_PARAMS"]["results_path"]+"losses.pth")
-    torch.save(spherical_siren.state_dict(), config["EXPERIMENT_PARAMS"]["model_path"]+"model.pth")
+    torch.save({'losses_train': losses_train, 'losses_val': losses_val}, save_path+"losses.pth")
+    torch.save(spherical_siren.state_dict(), model_path + "model.pth")
 
     # Compute spectrum
     
     sht = th.RealSHT(nlat=N, nlon=N, lmax=config["EXPERIMENT_PARAMS"]["lmax"] + 1, mmax=config["EXPERIMENT_PARAMS"]["lmax"]+1)
     coeffs = sht(y_data.reshape((N, N)))
 
-    torch.save(coeffs.abs(), config["EXPERIMENT_PARAMS"]["results_path"]+"spectrum_coeffs.pth")
+    torch.save(coeffs.abs(), save_path + "spectrum_coeffs.pth")
 
     inside = spherical_siren.forward_inside(X_data)
     coeffs_inside = {}
@@ -89,7 +95,7 @@ def main(parser):
 
         coeffs_inside[layer] = torch.max(torch.stack(coeffs_inside[layer]), dim=0).values.cpu()
 
-    torch.save(coeffs_inside, config["EXPERIMENT_PARAMS"]["results_path"]+"spectrum_coeffs_inside.pth")
+    torch.save(coeffs_inside, save_path + "spectrum_coeffs_inside.pth")
 
 # Run both experiments
 if __name__ == "__main__":
