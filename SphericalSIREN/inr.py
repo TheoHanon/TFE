@@ -11,7 +11,8 @@ activation_functions = {
     "tanh" : nn.Tanh(),
     "sigmoid" : nn.Sigmoid(),  
     "sin" : torch.sin,
-    "sinh" : lambda x: torch.sin(x * (1 + torch.abs(x)))
+    "sinh" : lambda x: torch.sin(x * (1 + torch.abs(x))),
+    "x2" : lambda x: (1-x**2),
 }
 
 def get_activation(activation : str) -> callable:
