@@ -4,25 +4,38 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def show_learning_curve(train_losses, val_losses, log = False):
+def show_learning_curve(train_losses_dict, val_losses_dict, log = False, labels = None):
 
-    mean_train_losses = np.mean(train_losses, axis=1)
-    std_train_losses = np.std(train_losses, axis=1)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
-    plt.figure(figsize=(10, 5))
+    for  i, (train_losses, val_losses) in enumerate(zip(train_losses_dict.values(), val_losses_dict.values())):
+       
+        mean_train_losses = np.mean(train_losses, axis=1)
+        std_train_losses = np.std(train_losses, axis=1)
 
-    if log :
-        plt.loglog(mean_train_losses, label='train loss', marker = 'o', fillstyle='none')
-        plt.loglog(val_losses, label='validation loss', marker = 'o', fillstyle='none')  
-    else:
-        plt.plot(mean_train_losses, label='train loss', marker = 'o', fillstyle='none')
-        plt.plot(val_losses, label='validation loss', marker = 'o', fillstyle='none')
-        plt.fill_between(range(len(mean_train_losses)), mean_train_losses - std_train_losses, mean_train_losses + std_train_losses, alpha=0.2)
-        
-    plt.xlabel('epoch')
-    plt.ylabel('loss')
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha = 0.4)
-    plt.legend()
+        if log:
+            ax1.loglog(mean_train_losses, marker='o', label = None if labels is None else labels[i])
+            ax2.loglog(val_losses, marker='o', label = None if labels is None else labels[i])
+        else:
+            ax1.plot(mean_train_losses, marker='o', label = None if labels is None else labels[i])
+            # ax1.fill_between(range(len(mean_train_losses)), mean_train_losses - std_train_losses, mean_train_losses + std_train_losses, alpha=0.2)
+            ax2.plot(val_losses,  marker='o', label = None if labels is None else labels[i])
+
+    ax1.set_xlabel('epoch')
+    ax1.set_ylabel('loss')
+    ax1.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.4)
+    if labels is not None:
+        ax1.legend()
+    ax1.set_title('Train Loss')
+
+    ax2.set_xlabel('epoch')
+    ax2.set_ylabel('loss')
+    ax2.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.4)
+    if labels is not None:
+        ax2.legend()
+    ax2.set_title('Validation Loss')
+
+    plt.tight_layout()
     plt.show()
 
 

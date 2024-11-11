@@ -122,7 +122,7 @@ class SphericalSiren(nn.Module):
         fan_in = weight.size(1)
         with torch.no_grad():
             for l in range(weight.size(0)):
-                weight[l].uniform_(-1/(l+1), 1/(l+1))
+                weight[l].uniform_(-1/(2*l+1), 1/(2*l+1))
         
     def init_weights(self) -> None:
 

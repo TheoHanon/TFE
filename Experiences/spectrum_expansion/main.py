@@ -28,8 +28,11 @@ def main(parser):
     if not os.path.exists(config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp):
         os.makedirs(config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp)
 
+    if not os.path.exists((config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp + "/model/")):
+        os.makedirs(config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp + "/model/")
+
     save_path = config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp + "/"
-    model_path = save_path + config["EXPERIMENT_PARAMS"]["model_path"] 
+    model_path = config["EXPERIMENT_PARAMS"]["results_path"] + parser.exp + "/model/"
     
     if config["EXPERIMENT_PARAMS"]["target"] == "cartoon_shape":
 

@@ -1,6 +1,6 @@
 NETWORK_PARAMS:
   L0: 5
-  Q: 3
+  Q: 2
   hidden_features: 40
   out_features: 1
   activation: "x2"  
