@@ -9,7 +9,7 @@ def compare_initialization(n_run, training_data, validation_data, network_params
 
     X_train, y_train = training_data
     
-    inits = ['random', 'xavier', 'kaiming', 'laurent_xavier']
+    inits = ['random', 'xavier', 'kaiming', 'laurent_xavier', 'laurent_kaiming']
 
     train_losses_dict = {init : [] for init in inits}
     val_losses_dict = {init : [] for init in inits}

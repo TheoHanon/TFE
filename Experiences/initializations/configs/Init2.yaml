@@ -1,17 +1,17 @@
 NETWORK_PARAMS:
   L0: 5
-  Q: 2
+  Q: 3
   hidden_features: 20
   out_features: 1
   activation: "sin"  
 
 TRAINING_PARAMS:
-  epochs: 1000
+  epochs: 200
   batch_size: 128
   device: "cpu"
 
 EXPERIMENT_PARAMS:
-  N : 200
+  N : 1000
   n_run : 5
   lmax : 20
   lr : 0.001

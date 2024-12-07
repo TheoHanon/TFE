@@ -85,6 +85,7 @@ class SphericalSiren(nn.Module):
             hidden_features : int, 
             out_features : int = 1, 
             activation : callable = torch.sin, 
+            first_activation : callable = None,
             bias : bool = True, 
             device : torch.device = torch.device("cpu"), 
             init : str = "siren",    
@@ -97,19 +98,19 @@ class SphericalSiren(nn.Module):
         self.hidden_features = hidden_features
         self.out_features = out_features
         self.activation = activation
+        self.first_activation = activation if first_activation is None else first_activation
         self.device = device
         self.init = init
     
         self.spherical_harmonics_embedding = SphericalHarmonicsEmbedding(L0, device=self.device)
         self.net = []
+        self.net.append(nn.Linear((L0+1)**2, hidden_features, bias = bias).to(self.device))
 
-        for i in range(Q+1):
-            if i == 0:
-                self.net.append(MLPLayer((L0+1)**2, hidden_features, bias = bias, activation=self.activation).to(self.device))
-
-            elif i == Q:
+        for i in range(Q):
+            if i == Q-1:
                 self.net.append(nn.Linear(hidden_features, out_features, bias = bias).to(self.device))
-            
+            elif i == 0:
+                self.net.append(MLPLayer(hidden_features, hidden_features, bias = bias, activation=self.first_activation).to(self.device))
             else :
                 self.net.append(MLPLayer(hidden_features, hidden_features, bias = bias, activation=self.activation).to(self.device))
                 
@@ -292,28 +293,31 @@ def train(
         batch_size : int, 
         validation_data: Union[None, Tuple[torch.tensor, torch.tensor]] = None, 
         device : torch.device = torch.device("cpu"),
+        log_interval: int = 1,
         **kwargs
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
 
 
     dataloader = torch.utils.data.DataLoader(list(zip(x, y)), batch_size= batch_size, shuffle=True)
 
-    losses_train = np.zeros((epochs, len(dataloader)))
+    losses_train = np.zeros(epochs)
     losses_val = np.zeros(epochs) if validation_data is not None else None
 
     model.train()
+    
     for epoch in range(epochs):
+        epoch_loss = 0.0
         for i, (x_batch, y_batch) in enumerate(dataloader):
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
             
             outputs = model(x_batch)
             loss = loss_fn(outputs, y_batch)
-    
+            epoch_loss += loss.item()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-        losses_train[epoch, i] = loss.item()
+        losses_train[epoch] = epoch_loss / len(dataloader)
 
         if validation_data is not None:
             with torch.no_grad():
@@ -326,9 +330,16 @@ def train(
                 model.train()
 
 
-        if validation_data is not None:
-            print(f'Epoch [{epoch + 1}/{epochs}], training_loss: {losses_train[epoch].mean():.4f}, val_loss: {losses_val[epoch]:.4f}', end = '\r')
-        else :
-            print(f'Epoch [{epoch + 1}/{epochs}], training_loss: {losses_train[epoch].mean():.4f}', end = '\r')
+        if (epoch + 1) % log_interval == 0:
+            if validation_data is not None:
+                print(
+                    f"Epoch [{epoch + 1}/{epochs}], "
+                    f"Training Loss: {losses_train[epoch]:.4f}, "
+                    f"Validation Loss: {losses_val[epoch]:.4f}", 
+                    end = "\r"
+                )
+            else:
+                print(f"Epoch [{epoch + 1}/{epochs}], Training Loss: {losses_train[epoch]:.4f}", end = "\r")
 
-    return losses_train, losses_val if validation_data is not None else losses_train
+
+    return (losses_train, losses_val) if validation_data is not None else losses_train

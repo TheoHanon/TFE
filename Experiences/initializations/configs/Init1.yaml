@@ -6,12 +6,12 @@ NETWORK_PARAMS:
   activation: "x2"  
 
 TRAINING_PARAMS:
-  epochs: 100
+  epochs: 200
   batch_size: 128
   device: "cpu"
 
 EXPERIMENT_PARAMS:
-  N : 50
+  N : 1000
   n_run : 5
   lmax : 20
   lr : 0.001
