@@ -1,0 +1,19 @@
+NETWORK_PARAMS:
+  L0: 1
+  Q: 2
+  hidden_features: 40
+  out_features: 1
+  activation: "x2"  
+
+TRAINING_PARAMS:
+  epochs: 200
+  batch_size: 128
+  device: "cpu"
+  lr: 0.001
+
+EXPERIMENT_PARAMS:
+  N : 1000
+  lmax : 60
+  model_path : "model/"
+  results_path : "results/"
+  target : "cartoon_shape"
