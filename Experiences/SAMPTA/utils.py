@@ -4,16 +4,6 @@ from matplotlib import cm
 import torch
 
 
-class PAlphaActivation(torch.nn.Module):
-    def __init__(self, alpha=10, coeff0=1):
-        super(PAlphaActivation, self).__init__()
-        self.alpha = alpha
-        self.coeff0 = coeff0
-
-    def forward(self, x):
-        out = torch.sin(x * self.coeff0)
-        return out
-
 def plot_earth_topography(grid, colormap=cm.RdBu_r, earth_radius=6371e3, save_path = None):
     """
     Plots Earth's topography on a 3D sphere.
