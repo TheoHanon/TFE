@@ -61,7 +61,7 @@ class MLPLayer(nn.Module):
 
 
 
-class SphericalSiren(nn.Module):
+class SphericalINR(nn.Module):
 
     """Spherical SIREN model. The model performs a spherical harmonics embedding of the input coordinates and then applies a fully connected neural network to the embedded coordinates.
 
@@ -91,7 +91,7 @@ class SphericalSiren(nn.Module):
             init : str = "siren",    
         ) -> None :
 
-        super(SphericalSiren, self).__init__()
+        super(SphericalINR, self).__init__()
 
         self.L0 = L0
         self.Q = Q
