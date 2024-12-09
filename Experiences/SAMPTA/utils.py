@@ -216,12 +216,12 @@ def plot_losses(
     Plot training and validation losses for multiple models.
 
     Parameters:
-    - loss_dict (dict): A dictionary where keys are model names, and values are tuples of
-                        (losses_train, losses_val). If losses_val is None, only training loss is plotted.
+    - loss_dict (dict): A dictionary where keys are model names, and values are either tuples of
+                        (losses_train, losses_val) or just losses_train. If losses_val is None, only training loss is plotted.
                         Example:
                         {
                             "Model A": (losses_train_a, losses_val_a),
-                            "Model B": (losses_train_b, None)
+                            "Model B": losses_train_b
                         }
     - title (str): Title of the plot.
     - xlabel (str): Label for the x-axis.
@@ -229,7 +229,13 @@ def plot_losses(
     """
     fig = plt.figure(figsize=(12, 8))
 
-    for model_name, (losses_train, losses_val) in loss_dict.items():
+    for model_name, losses in loss_dict.items():
+        if isinstance(losses, tuple):
+            losses_train, losses_val = losses
+        else:
+            losses_train = losses
+            losses_val = None
+
         plt.plot(losses_train, label=f"{model_name} - Training", linewidth=2)
         if losses_val is not None:
             plt.plot(losses_val, label=f"{model_name} - Validation", linestyle="--", linewidth=2)
@@ -242,9 +248,8 @@ def plot_losses(
     plt.grid(True)
     if save_path is not None:
         plt.savefig(save_path + ".pdf", dpi=300)
-    else :
+    else:
         plt.show()
-    
 
 
 
