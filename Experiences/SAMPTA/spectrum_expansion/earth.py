@@ -1,6 +1,3 @@
-import sys
-sys.path.append('/Users/theohanon/Desktop/Master II/TFE/Experiences/SAMPTA')
-
 import numpy as np
 import pyshtools
 from inr import SphericalSiren, train
