@@ -203,7 +203,7 @@ def plot_losses(
     save_path: str = None
 ):
     """
-    Plot training and validation losses for multiple models.
+    Plot training and validation losses for multiple models with distinct colors and line styles.
 
     Parameters:
     - loss_dict (dict): A dictionary where keys are model names, and values are either tuples of
@@ -217,18 +217,25 @@ def plot_losses(
     - xlabel (str): Label for the x-axis.
     - ylabel (str): Label for the y-axis.
     """
+
     fig = plt.figure(figsize=(12, 8))
 
-    for model_name, losses in loss_dict.items():
+    colors = plt.cm.tab10.colors
+    line_styles = ['-', '--', '-.', ':', (0, (3, 1, 1, 1)), (0, (5, 5)), (0, (3, 5, 1, 5))]
+
+    for i, (model_name, losses) in enumerate(loss_dict.items()):
         if isinstance(losses, tuple):
             losses_train, losses_val = losses
         else:
             losses_train = losses
             losses_val = None
 
-        plt.plot(losses_train, label=f"{model_name} - Training", linewidth=2)
+        color = colors[i % len(colors)]  # Corrected: Accessing color by index
+        line_style = line_styles[i % len(line_styles)]
+
+        plt.plot(losses_train, label=f"{model_name} - Training", color=color, linestyle=line_style, linewidth=2)
         if losses_val is not None:
-            plt.plot(losses_val, label=f"{model_name} - Validation", linestyle="--", linewidth=2)
+            plt.plot(losses_val, label=f"{model_name} - Validation", color=color, linestyle=line_style, linewidth=2)
 
     plt.title(title, fontsize=16)
     plt.xlabel(xlabel, fontsize=14)
@@ -240,6 +247,7 @@ def plot_losses(
         plt.savefig(save_path + ".pdf", dpi=300)
     else:
         plt.show()
+
 
 
 
