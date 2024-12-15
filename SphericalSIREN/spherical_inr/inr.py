@@ -5,19 +5,6 @@ import torch.nn.init as init
 from spherical_harmonics_ylm import get_SH
 from typing import Union, Tuple
 
-
-activation_functions = {  
-    "relu" : nn.ReLU(),
-    "tanh" : nn.Tanh(),
-    "sigmoid" : nn.Sigmoid(),  
-    "sin" : torch.sin,
-    "sinh" : lambda x: torch.sin(x * (1 + torch.abs(x))),
-    "x2" : lambda x: (1-x**2),
-}
-
-def get_activation(activation : str) -> callable:
-    return activation_functions[activation]
-
 class SphericalHarmonicsEmbedding(nn.Module):
     """Generates the spherical harmonics positional encoding of the input coordinates.
 
@@ -32,33 +19,50 @@ class SphericalHarmonicsEmbedding(nn.Module):
         self.L0 = L0
         self.device = device
         self.spherical_harmonics_func = []
-
+    
         for l in range(self.L0 + 1):
             for m in range(-l, l + 1):
-                self.spherical_harmonics_func.append(get_SH(m, l)) # pre-load the spherical harmonics functions
-        
+                self.spherical_harmonics_func.append(get_SH(m, l)) # pre-load the spherical harmonics functions        
+
     def forward(self, x : torch.Tensor) -> torch.Tensor:
         
         theta, phi = x[...,0], x[...,1]
         emb = torch.zeros(x.size(0), (self.L0+1)**2, dtype=torch.float32, device = self.device)
         
         for idx, sh_func in enumerate(self.spherical_harmonics_func):
-            emb[:, idx] = sh_func(theta, phi)
+            emb[:, idx] = 1/np.sqrt(2) * sh_func(theta, phi)
 
         return emb
     
 
 class MLPLayer(nn.Module):
 
-    def __init__(self, input_features : int , output_features : int , bias : bool, activation : callable) -> None:
+    def __init__(self, input_features : int , output_features : int , bias : bool, activation : callable, spectral_norm : bool = False) -> None:
         super(MLPLayer, self).__init__()
-        self.layer = nn.Linear(input_features, output_features, bias = bias)
+        linear = nn.Linear(input_features, output_features, bias = bias)
+        self.layer = nn.utils.spectral_norm(linear) if spectral_norm else linear
         self.activation = activation
 
+        self.spectral_norm = spectral_norm
+
+
+        self.fan_in = input_features
+        self.fan_out = output_features
 
     def forward(self, x : torch.Tensor) -> torch.Tensor:
-        return self.activation(self.layer(x))
 
+        out = self.layer(x)
+
+        if self.spectral_norm:
+            out /= np.sqrt(self.fan_in)
+
+        return self.activation(out)
+    
+    def init_weights(self) -> None:
+        with torch.no_grad():
+            init.xavier_uniform_(self.layer.weight)
+            if self.layer.bias is not None:
+                init.zeros_(self.layer.bias)
 
 
 class SphericalINR(nn.Module):
@@ -88,7 +92,7 @@ class SphericalINR(nn.Module):
             first_activation : callable = None,
             bias : bool = True, 
             device : torch.device = torch.device("cpu"), 
-            init : str = "siren",    
+            spectral_norm: bool = False
         ) -> None :
 
         super(SphericalINR, self).__init__()
@@ -100,88 +104,39 @@ class SphericalINR(nn.Module):
         self.activation = activation
         self.first_activation = activation if first_activation is None else first_activation
         self.device = device
-        self.init = init
-    
+
+        self.spectral_norm = spectral_norm
         self.spherical_harmonics_embedding = SphericalHarmonicsEmbedding(L0, device=self.device)
         self.net = []
-        self.net.append(nn.Linear((L0+1)**2, hidden_features, bias = bias).to(self.device))
 
         for i in range(Q):
-            if i == Q-1:
-                self.net.append(nn.Linear(hidden_features, out_features, bias = bias).to(self.device))
+            if i == Q - 1:
+                self.net.append(
+                    nn.utils.spectral_norm(nn.Linear(hidden_features, out_features, bias=bias)) if spectral_norm 
+                    else nn.Linear(hidden_features, out_features, bias=bias)
+                )
             elif i == 0:
-                self.net.append(MLPLayer(hidden_features, hidden_features, bias = bias, activation=self.first_activation).to(self.device))
-            else :
-                self.net.append(MLPLayer(hidden_features, hidden_features, bias = bias, activation=self.activation).to(self.device))
-                
+                self.net.append(
+                    MLPLayer((L0+1)**2, hidden_features, bias=bias, activation=self.first_activation, spectral_norm=spectral_norm)
+                )
+            else:
+                self.net.append(
+                    MLPLayer(hidden_features, hidden_features, bias=bias, activation=self.activation, spectral_norm=spectral_norm)
+                )
         
         self.net = nn.Sequential(*self.net)
         self.init_weights()
 
-
-    def _laurent_init(self, weight : torch.tensor) -> None:
-        fan_in = weight.size(1)
-        with torch.no_grad():
-            for l in range(weight.size(0)):
-                weight[l].uniform_(-1/(2*l+1), 1/(2*l+1))
         
     def init_weights(self) -> None:
 
-        if self.init == "xavier":   
-            for layer in self.net:
-                if isinstance(layer, MLPLayer):
-                    init.xavier_uniform_(layer.layer.weight)
-                    if layer.layer.bias is not None:
-                        init.zeros_(layer.layer.bias)
-                elif isinstance(layer, nn.Linear):
-                    init.xavier_uniform_(layer.weight)
-                    if layer.bias is not None:
-                        init.zeros_(layer.bias)
-
-        elif self.init == "kaiming":
-
-            for layer in self.net:
-                if isinstance(layer, MLPLayer):
-                    init.kaiming_uniform_(layer.layer.weight)
-                    if layer.layer.bias is not None:
-                        init.zeros_(layer.layer.bias)
-                elif isinstance(layer, nn.Linear):
-                    init.kaiming_uniform_(layer.weight)
-                    if layer.bias is not None:
-                        init.zeros_(layer.bias)
-
-        elif self.init == "laurent_kaiming":
-
-            self._laurent_init(self.net[0].layer.weight)
-            init.zeros_(self.net[0].layer.bias)
-
-            for layer in self.net[1:]:
-                if isinstance(layer, MLPLayer):
-                    init.kaiming_uniform_(layer.layer.weight)
-                    if layer.layer.bias is not None:
-                        init.zeros_(layer.layer.bias)
-                elif isinstance(layer, nn.Linear):
-                    init.kaiming_uniform_(layer.weight)
-                    if layer.bias is not None:
-                        init.zeros_(layer.bias)
-        
-
-        elif self.init == "laurent_xavier" :
-            
-            self._laurent_init(self.net[0].layer.weight)
-            init.zeros_(self.net[0].layer.bias)
-
-            for layer in self.net[1:]:
-                if isinstance(layer, MLPLayer):
-                    init.xavier_uniform_(layer.layer.weight)
-                    if layer.layer.bias is not None:
-                        init.zeros_(layer.layer.bias)
-                elif isinstance(layer, nn.Linear):
-                    init.xavier_uniform_(layer.weight)
-                    if layer.bias is not None:
-                        init.zeros_(layer.bias) 
-
-        else: return 
+        for layer in self.net:
+            if isinstance(layer, MLPLayer):
+                layer.init_weights()
+            elif isinstance(layer, nn.Linear):
+                init.xavier_uniform_(layer.weight)
+                if layer.bias is not None:
+                    init.zeros_(layer.bias)
 
     
     def forward(self, x : torch.Tensor) -> torch.Tensor:
