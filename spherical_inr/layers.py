@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import numpy as np
-from typing import Union, Tuple
 from spherical_harmonics_ylm import get_SH
 
 

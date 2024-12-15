@@ -1,6 +1,6 @@
 import numpy as np
-import math
 import torch
+import matplotlib.pyplot as plt
 
 import torch_harmonics as th
 import spherical_inr as sph
@@ -38,7 +38,8 @@ y_coarse = f_target(theta_coarse.flatten(), phi_coarse.flatten()).unsqueeze(1).f
 
 coeffs_coarse = sht_coarse(y_coarse.reshape(nlat_coarse, nlon_coarse)).numpy()
 
-sph.plot_SHT_coeffs(coeffs_coarse, save_path="figures_aliasing/sh_coeffs_gt_coarse")
+sph.plot_SHT_coeffs(coeffs_coarse)
+plt.show()
 
 ### Fine grid
 
@@ -52,7 +53,8 @@ y_fine = f_target(theta_fine.flatten(), phi_fine.flatten()).unsqueeze(1).float()
 coeffs_fine = sht_fine(y_fine.reshape(nlat_fine, nlon_fine)).numpy()
 
 # plot_SHT_coeffs(coeffs_fine)
-sph.plot_SHT_coeffs(coeffs_fine, save_path="figures_aliasing/sh_coeffs_gt_fine", ticks_l=20)
+sph.plot_SHT_coeffs(coeffs_fine, ticks_l=20)
+plt.show()
 
 
 ## Train SIREN for increasing alpha
@@ -115,7 +117,8 @@ dict_coeffs[r"$\sigma_0(x) = \sin(5x)$; $\sigma(x) = \sin(x) $"] = coeffs_pred_f
 
 ## Plot results
 
-sph.plot_max_SHT_coeffs(dict_coeffs, legend_title="Activation function", save_path="figures_aliasing/sh_coeffs_alpha", ticks_l=20)
+sph.plot_max_SHT_coeffs(dict_coeffs, title="Activation function", ticks_l=20)
+plt.show()
 
 
 ## Train SIREN for fixed alpha and increasing coeff0
@@ -173,8 +176,10 @@ dict_losses[r"$\sigma_0(x) = \sin(5x); \sigma(x) = \sin(x)$"] = loss_train
 
 ## Plot results
 
-sph.plot_max_SHT_coeffs(dict_coeffs, save_path="figures_aliasing/sh_coeffs_w0", ticks_l=20)
-sph.plot_losses(dict_losses, save_path="figures_aliasing/losses", xlabel="Epochs", ylabel="MSE Loss")
+sph.plot_max_SHT_coeffs(dict_coeffs,  ticks_l=20)
+plt.show()
+sph.plot_losses(dict_losses, ylabel="MSE Loss")
+plt.show()
 
 
 
