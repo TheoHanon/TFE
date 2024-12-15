@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='spherical_siren',
+    name='spherical_inr',
     version='0.1',
     packages=find_packages(),
     install_requires=[
