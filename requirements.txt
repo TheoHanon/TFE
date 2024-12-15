@@ -1,8 +1,8 @@
-Cartopy==0.22.0
-jax==0.4.30
-matplotlib==3.10.0
-numpy==2.2.0
-s2fft==1.1.1
-scikit_learn==1.4.2
-torch==2.5.1
-torch_harmonics==0.7.2
+Cartopy
+jax
+matplotlib
+numpy
+s2fft
+scikit_learn
+torch
+torch_harmonics
