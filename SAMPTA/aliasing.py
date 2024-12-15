@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 import torch_harmonics as th
 import spherical_inr as sph
+from sklearn.preprocessing import MinMaxScaler
 
     
 l_freq = 23
@@ -38,8 +39,12 @@ y_coarse = f_target(theta_coarse.flatten(), phi_coarse.flatten()).unsqueeze(1).f
 
 coeffs_coarse = sht_coarse(y_coarse.reshape(nlat_coarse, nlon_coarse)).numpy()
 
-sph.plot_SHT_coeffs(coeffs_coarse)
-plt.show()
+scaler = MinMaxScaler()
+y_coarse = torch.tensor(scaler.fit_transform(y_coarse)).float()
+
+# sph.plot_SHT_coeffs(coeffs_coarse)
+# sph.plot_max_SHT_coeffs(coeffs_coarse, ticks_l=5)
+# plt.show()
 
 ### Fine grid
 
@@ -52,25 +57,30 @@ y_fine = f_target(theta_fine.flatten(), phi_fine.flatten()).unsqueeze(1).float()
 
 coeffs_fine = sht_fine(y_fine.reshape(nlat_fine, nlon_fine)).numpy()
 
-# plot_SHT_coeffs(coeffs_fine)
-sph.plot_SHT_coeffs(coeffs_fine, ticks_l=20)
-plt.show()
+y_fine = torch.tensor(scaler.transform(y_fine)).float()
+
+
+# sph.plot_SHT_coeffs(coeffs_fine, ticks_l=20)
+# sph.plot_max_SHT_coeffs(coeffs_fine, ticks_l=20)
+# plt.show()
 
 
 ## Train SIREN for increasing alpha
 
-
-activation_degrees = [(2, 2), (10, 2), (20, 2), (4, 4), (10, 4), (20, 4), (10, 10), (20, 20)]
+activation_degrees = [(10, 5)]
 dict_coeffs = {}
 
 torch.manual_seed(42)
 for (degree_first, degree_subseq) in activation_degrees:
     # theoretical expansion = 5 * alpha ** (2)
+
     sh_siren = sph.SphericalNet(
          L0 = 10, 
-         Q = 2, 
+         Q = 3, 
          hidden_features = 50, 
-         activation =  sph.Chebyshev(order = degree_subseq, alpha = 1.0),
+         spectral_norm=True,
+         bias = True, 
+         activation = sph.Chebyshev(order = degree_subseq, alpha = 1.0),
          first_activation = sph.Chebyshev(order = degree_first, alpha = 1.0)
     )
 
@@ -80,107 +90,47 @@ for (degree_first, degree_subseq) in activation_degrees:
         model = sh_siren,
         loss_fn = torch.nn.MSELoss(),
         optimizer = torch.optim.Adam(sh_siren.parameters(), lr=1e-3),
-        epochs = 500,
-        batch_size = 128,
+        epochs = 1000,
+        batch_size = 512,
     )
 
-    y_pred_fine = sh_siren(X_fine).clone().detach().reshape(nlat_fine, nlon_fine)
+
+    y_pred_fine = torch.tensor(scaler.inverse_transform(sh_siren(X_fine).clone().detach().reshape(nlat_fine, nlon_fine)))
+    
     coeffs_pred_fine = sht_fine(y_pred_fine).numpy()
     dict_coeffs[r"$\sigma_0(x) = T_{%.d}(x)$; $\sigma(x) = T_{%.d}(x) $"%(degree_first, degree_subseq)] = coeffs_pred_fine
 
     # plot_SHT_coeffs(coeffs_pred_fine)
 
 
-sh_siren = sph.SphericalNet(
-         L0 = 10, 
-         Q = 2, 
-         hidden_features = 50, 
-         activation =  torch.sin,
-         first_activation = torch.sin
-    )
+# sh_siren = sph.SphericalNet(
+#          L0 = 10, 
+#          Q = 3, 
+#          spectral_norm=False,
+#          hidden_features = 50, 
+#          activation =  torch.sin,
+#          first_activation = lambda x : torch.sin(30*x)
+#     )
 
-sph.train(
-    x = X_coarse,
-    y = y_coarse,
-    model = sh_siren,
-    loss_fn = torch.nn.MSELoss(),
-    optimizer = torch.optim.Adam(sh_siren.parameters(), lr=1e-3),
-    epochs = 500,
-    batch_size = 128,
-)
+# sph.train(
+#     x = X_coarse,
+#     y = y_coarse,
+#     model = sh_siren,
+#     loss_fn = torch.nn.MSELoss(),
+#     optimizer = torch.optim.Adam(sh_siren.parameters(), lr=1e-3),
+#     epochs = 200,
+#     batch_size = 1024,
+# )
 
-y_pred_fine = sh_siren(X_fine).clone().detach().reshape(nlat_fine, nlon_fine)
-coeffs_pred_fine = sht_fine(y_pred_fine).numpy()
-dict_coeffs[r"$\sigma_0(x) = \sin(5x)$; $\sigma(x) = \sin(x) $"] = coeffs_pred_fine
-
+# y_pred_fine =  torch.tensor(scaler.inverse_transform(sh_siren(X_fine).clone().detach().reshape(nlat_fine, nlon_fine)))
+# coeffs_pred_fine = sht_fine(y_pred_fine).numpy()
+# dict_coeffs[r"$\sigma_0(x) = \sin(5x)$; $\sigma(x) = \sin(x) $"] = coeffs_pred_fine
 
 
 ## Plot results
 
 sph.plot_max_SHT_coeffs(dict_coeffs, title="Activation function", ticks_l=20)
 plt.show()
-
-
-## Train SIREN for fixed alpha and increasing coeff0
-
-alphas = [(1/5, 1), (1/2, 1), (1, 1), (2, 1), (5, 1), (10,1), (1, 1/2), (1, 1), (1, 2), (1, 5), (1, 10)]
-dict_coeffs = {}
-dict_losses = {}
-
-torch.manual_seed(42)
-for (alpha_first, alpha_subseq) in alphas:
-    # theoretical expansion = 5 * alpha ** (2)
-    sh_siren = sph.SphericalNet(L0 = 10, 
-                            Q = 2, 
-                            hidden_features = 50, 
-                            activation = sph.Chebyshev(order=10, alpha = alpha_subseq), 
-                            first_activation = sph.Chebyshev(order = 10, alpha = alpha_first))
-    
-    loss_train = sph.train(
-        x = X_coarse.clone().detach(),
-        y = y_coarse.clone().detach(),
-        model = sh_siren,
-        loss_fn = torch.nn.MSELoss(),
-        optimizer = torch.optim.Adam(sh_siren.parameters(), lr=1e-3),
-        epochs = 500,
-        batch_size = 128,
-    )
-
-    y_pred_fine = sh_siren(X_fine).clone().detach().reshape(nlat_fine, nlon_fine)
-    coeffs_pred_fine = sht_fine(y_pred_fine).numpy()
-    dict_coeffs[r"$\sigma_0(x) = T_{5}(\frac{x}{%.1f}); \sigma(x) = T_{5}(\frac{x}{%.1f})$" % (alpha_first, alpha_subseq)] = coeffs_pred_fine
-    dict_losses[r"$\sigma_0(x) = T_{5}(\frac{x}{%.1f}); \sigma(x) = T_{5}(\frac{x}{%.1f})$" % (alpha_first, alpha_subseq)] = loss_train
-
-
-sh_siren = sph.SphericalNet(L0 = 10, 
-                            Q = 2, 
-                            hidden_features = 50, 
-                            activation = torch.sin, 
-                            first_activation = torch.sin)
-    
-loss_train = sph.train(
-    x = X_coarse.clone().detach(),
-    y = y_coarse.clone().detach(),
-    model = sh_siren,
-    loss_fn = torch.nn.MSELoss(),
-    optimizer = torch.optim.Adam(sh_siren.parameters(), lr=1e-3),
-    epochs = 500,
-    batch_size = 128,
-)
-
-y_pred_fine = sh_siren(X_fine).clone().detach().reshape(nlat_fine, nlon_fine)
-coeffs_pred_fine = sht_fine(y_pred_fine).numpy()
-dict_coeffs[r"$\sigma_0(x) = \sin(5x); \sigma(x) = \sin(x)$"] = coeffs_pred_fine
-dict_losses[r"$\sigma_0(x) = \sin(5x); \sigma(x) = \sin(x)$"] = loss_train
-
-
-## Plot results
-
-sph.plot_max_SHT_coeffs(dict_coeffs,  ticks_l=20)
-plt.show()
-sph.plot_losses(dict_losses, ylabel="MSE Loss")
-plt.show()
-
 
 
 

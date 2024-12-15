@@ -1,3 +1,4 @@
+
 def sample_s2(L: int, sampling: str = "gl", torch_tensor : bool = False, meshgrid : bool = True):
     """
     Samples points on the 2-sphere for a given resolution L and sampling type.
@@ -34,4 +35,28 @@ def sample_s2(L: int, sampling: str = "gl", torch_tensor : bool = False, meshgri
         phi, theta = torch.tensor(phi), torch.tensor(theta)
 
     return phi, theta, (nlon, nlat)
+
+
+def sample_s2_uniform(N_point : int, torch_tensor : bool = False) :
+
+    import numpy as np
+
+    if torch_tensor :
+        import torch
+
+    # Sample uniformly on the sphere
+    v = np.random.randn(N_point, 3)
+    v /= np.linalg.norm(v, axis=1)[:, None]
+    x, y, z = v[:,0], v[:,1], v[:,2]
+
+    # Convert Cartesian coordinates to spherical coordinates
+    phi = np.arctan2(y, x)
+    phi = np.mod(phi, 2*np.pi)
+
+    theta = np.arccos(z)
+
+    if torch_tensor:
+        phi, theta = torch.tensor(phi), torch.tensor(theta)
+    
+    return phi, theta
 

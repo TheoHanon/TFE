@@ -31,6 +31,7 @@ def plot_sphere(data,
 
     nlat = data.shape[-2]
     nlon = data.shape[-1]
+
     if lon is None:
         lon = np.linspace(0, 2*np.pi, nlon)
     if lat is None:
@@ -57,6 +58,51 @@ def plot_sphere(data,
     return im
 
 
+def plot_sphere_scatter(data,
+                        lon,
+                        lat,
+                        fig=None,
+                        cmap="RdBu",
+                        title=None,
+                        colorbar=False,
+                        coastlines=False,
+                        central_latitude=20,
+                        central_longitude=20,
+                        molweide=False,
+                        **kwargs):
+    
+    if fig == None:
+        fig = plt.figure()
+
+    Lon = lon * 180/np.pi
+    Lat = 90 - lat * 180/np.pi
+
+
+    if molweide:
+        proj = ccrs.Mollweide(central_longitude=central_longitude)
+    else:
+        proj = ccrs.Orthographic(central_longitude=central_longitude, central_latitude=central_latitude)
+    
+    ax = fig.add_subplot(projection=proj)
+
+
+    # contour data over the map.
+    im = ax.scatter(Lon, Lat, c=data, cmap=cmap, transform=ccrs.PlateCarree(), **kwargs)
+
+
+    if coastlines:
+        ax.add_feature(cartopy.feature.COASTLINE, edgecolor='k', facecolor='none', linewidth=1.5)
+    if colorbar:
+        plt.colorbar(im)
+    plt.title(title, y=1.05)
+
+    return im
+
+
+
+
+
+
 def plot_SHT_coeffs(coeffs, 
                     ticks_m=10, 
                     ticks_l=10, 
@@ -76,6 +122,8 @@ def plot_SHT_coeffs(coeffs,
     - colorbar (bool): Whether to include a colorbar.
     - kwargs: Additional arguments passed to `imshow`.
     """
+    coeffs = coeffs.copy()
+
     mask = (np.abs(coeffs) == 0)
     coeffs[mask] = 1.0
 
@@ -168,8 +216,8 @@ def plot_max_SHT_coeffs(coeffs_dict,
     ax.set_xticks(np.arange(0, len(l_values), ticks_l))
     ax.grid(True, linestyle='--', alpha=0.6, which='both')
 
-    if legend_title:
-        ax.legend(title=legend_title, fontsize=12)
+
+    ax.legend(title = legend_title, fontsize=12)
 
     if title:
         ax.set_title(title, fontsize=18)
@@ -215,12 +263,11 @@ def plot_losses(
 
     if title:
         ax.set_title(title, fontsize=16)
+
     ax.set_xlabel("Epochs", fontsize=14)
     ax.set_ylabel(ylabel, fontsize=14)
     ax.legend(fontsize=12)
     ax.set_yscale("log")
     ax.grid(True)
-
-    plt.show()
 
     return fig

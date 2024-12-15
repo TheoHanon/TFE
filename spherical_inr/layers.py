@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import numpy as np
-from spherical_harmonics_ylm import get_SH
+from .spherical_harmonics_ylm import get_SH
 
 
 
@@ -32,7 +32,7 @@ class SphericalHarmonicsEmbedding(nn.Module):
         emb = torch.zeros(x.size(0), (self.L0+1)**2, dtype=torch.float32, device = self.device)
         
         for idx, sh_func in enumerate(self.spherical_harmonics_func):
-            emb[:, idx] = 1/np.sqrt(2) * sh_func(theta, phi)
+            emb[:, idx] =  sh_func(theta, phi)
 
         return emb
     
@@ -46,18 +46,10 @@ class MLPLayer(nn.Module):
         self.activation = activation
 
         self.spectral_norm = spectral_norm
-
-
-        self.fan_in = input_features
-        self.fan_out = output_features
-
+        
     def forward(self, x : torch.Tensor) -> torch.Tensor:
 
         out = self.layer(x)
-
-        if self.spectral_norm:
-            out /= np.sqrt(self.fan_in)
-
         return self.activation(out)
     
     def init_weights(self) -> None:

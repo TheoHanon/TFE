@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.init as init
-from layers import *
+from .layers import *
 from typing import Union, Tuple
 
 
@@ -38,6 +38,7 @@ class SphericalNet(nn.Module):
 
         super(SphericalNet, self).__init__()
 
+    
         self.L0 = L0
         self.Q = Q
         self.hidden_features = hidden_features
@@ -47,42 +48,46 @@ class SphericalNet(nn.Module):
         self.device = device
 
         self.spectral_norm = spectral_norm
+
         self.spherical_harmonics_embedding = SphericalHarmonicsEmbedding(L0, device=self.device)
+        self.first_layer = MLPLayer((L0+1)**2, hidden_features, bias=bias, activation=self.first_activation, spectral_norm=spectral_norm).to(device)
+        self.final_layer = nn.Linear(hidden_features, out_features, bias=bias).to(device)
+
         self.net = []
 
-        for i in range(Q):
-            if i == Q - 1:
-                self.net.append(
-                    nn.utils.spectral_norm(nn.Linear(hidden_features, out_features, bias=bias)) if spectral_norm 
-                    else nn.Linear(hidden_features, out_features, bias=bias)
-                )
-            elif i == 0:
-                self.net.append(
-                    MLPLayer((L0+1)**2, hidden_features, bias=bias, activation=self.first_activation, spectral_norm=spectral_norm)
-                )
-            else:
-                self.net.append(
-                    MLPLayer(hidden_features, hidden_features, bias=bias, activation=self.activation, spectral_norm=spectral_norm)
-                )
+        for _ in range(Q-2):
+
+            self.net.append(
+                MLPLayer(hidden_features, hidden_features, bias=bias, activation= self.activation, spectral_norm=spectral_norm).to(device)
+            )
         
         self.net = nn.Sequential(*self.net)
-        self.init_weights()
 
-        
+        # self.init_weights()
+
     def init_weights(self) -> None:
 
         for layer in self.net:
             if isinstance(layer, MLPLayer):
                 layer.init_weights()
             elif isinstance(layer, nn.Linear):
-                init.xavier_uniform_(layer.weight)
-                if layer.bias is not None:
-                    init.zeros_(layer.bias)
+                with torch.no_grad():
+                    init.xavier_uniform_(layer.weight)
+                    if layer.bias is not None:
+                        init.zeros_(layer.bias)
+
+        self.first_layer.init_weights()
+        init.xavier_uniform_(self.final_layer.weight)
+        
 
     
     def forward(self, x : torch.Tensor) -> torch.Tensor:
         emb = self.spherical_harmonics_embedding(x)
-        out = self.net(emb)
+
+        out = self.first_layer(emb)
+        out = self.net(out)
+        out = self.final_layer(out)
+     
         return out
     
     
