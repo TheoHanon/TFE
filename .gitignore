@@ -8,7 +8,7 @@ Experiences/**/plots/
 Experiences/**/images/
 Experiences/SAMPTA/aliasing/figures_aliasing
 Experiences/SAMPTA/spectrum_expansion/figures_spectrum_expansion
-
+SAMPTA/figures
 
 # Byte-compiled / optimized / DLL files
 Experiences/**/__pycache__/
