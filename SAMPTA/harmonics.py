@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 l_max = 20
 L = 40
+
 coeffs = np.random.randn((l_max + 1) ** 2)
 
 def create_composite_function(l_max, coeffs):
